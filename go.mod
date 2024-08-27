@@ -1,4 +1,4 @@
-module github.com/dolthub/swiss
+module github.com/samoilenko/swiss
 
 go 1.23
 
