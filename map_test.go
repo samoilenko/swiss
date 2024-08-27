@@ -87,6 +87,9 @@ func testSwissMap[K comparable](t *testing.T, keys []K) {
 	t.Run("iter", func(t *testing.T) {
 		testMapIter(t, keys)
 	})
+	t.Run("iterator", func(t *testing.T) {
+		testMapIterator(t, keys)
+	})
 	t.Run("grow", func(t *testing.T) {
 		testMapGrow(t, keys)
 	})
@@ -258,6 +261,43 @@ func testMapIter[K comparable](t *testing.T, keys []K) {
 		m.Put(k, -v)
 		return
 	})
+	for i, key := range keys {
+		act, ok := m.Get(key)
+		assert.True(t, ok)
+		assert.Equal(t, -i, act)
+	}
+}
+
+func testMapIterator[K comparable](t *testing.T, keys []K) {
+	m := NewMap[K, int](uint32(len(keys)))
+	for i, key := range keys {
+		m.Put(key, i)
+	}
+	visited := make(map[K]uint, len(keys))
+	m.Iter(func(k K, v int) (stop bool) {
+		visited[k] = 0
+		stop = true
+		return
+	})
+	if len(keys) == 0 {
+		assert.Equal(t, len(visited), 0)
+	} else {
+		assert.Equal(t, len(visited), 1)
+	}
+	for _, k := range keys {
+		visited[k] = 0
+	}
+	for k, _ := range m.Iterator() {
+		visited[k]++
+	}
+
+	for _, c := range visited {
+		assert.Equal(t, c, uint(1))
+	}
+	// mutate on iter
+	for k, v := range m.Iterator() {
+		m.Put(k, -v)
+	}
 	for i, key := range keys {
 		act, ok := m.Get(key)
 		assert.True(t, ok)

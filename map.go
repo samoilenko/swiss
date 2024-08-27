@@ -15,6 +15,8 @@
 package swiss
 
 import (
+	"iter"
+
 	"github.com/dolthub/maphash"
 )
 
@@ -230,6 +232,31 @@ func (m *Map[K, V]) Iter(cb func(k K, v V) (stop bool)) {
 		g++
 		if g >= uint32(len(groups)) {
 			g = 0
+		}
+	}
+}
+
+func (m *Map[K, V]) Iterator() iter.Seq2[K, V] {
+	// take a consistent view of the table in case
+	// we rehash during iteration
+	return func(yield func(K, V) bool) {
+		ctrl, groups := m.ctrl, m.groups
+		// pick a random starting group
+		g := randIntN(len(groups))
+		for n := 0; n < len(groups); n++ {
+			for s, c := range ctrl[g] {
+				if c == empty || c == tombstone {
+					continue
+				}
+				k, v := groups[g].keys[s], groups[g].values[s]
+				if !yield(k, v) {
+					return
+				}
+			}
+			g++
+			if g >= uint32(len(groups)) {
+				g = 0
+			}
 		}
 	}
 }
